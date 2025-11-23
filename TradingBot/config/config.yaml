@@ -1,0 +1,259 @@
+# Zerodha Kite MCP AI Trading Bot Configuration
+# Based on technical-implementation-spec.md
+
+capital:
+  starting_capital: 10000  # INR
+  min_reserve: 2000  # Emergency reserve
+  max_daily_loss_pct: 7.0  # % of capital
+  max_weekly_loss_pct: 15.0
+  margin_buffer_pct: 20.0  # Keep 20% margin buffer
+
+trading_rules:
+  max_concurrent_positions: 3
+  enable_live_trading: false  # Start with paper trading
+  require_manual_confirmation: true
+  cool_down_hours_fo: 48  # F&O cool-down period
+  cool_down_hours_equity: 24
+  
+risk_management:
+  circuit_breaker:
+    max_daily_losses: 3  # Trip after 3 losing trades
+    max_consecutive_losses: 2
+    high_latency_ms: 500  # Halt if latency > 500ms
+    min_margin_buffer_pct: 15.0
+    exception_count_threshold: 5
+    recovery_wait_minutes: 30
+  
+  position_limits:
+    max_position_size_pct: 30.0  # Max 30% capital per position
+    max_leverage: 1.0  # No leverage for equity
+    max_fo_positions: 2  # Max F&O positions
+    max_equity_positions: 3
+
+fo_strategy:
+  enabled: true
+  instruments:
+    - NIFTY
+    - BANKNIFTY  # Add later
+  
+  strike_selection:
+    min_delta: 0.20
+    max_delta: 0.40
+    min_open_interest: 1000
+    min_volume: 500
+    max_bid_ask_spread_pct: 2.0
+    prefer_atm_distance: 2  # Strikes away from ATM
+  
+  entry_rules:
+    macd_signal_threshold: 0.0
+    rsi_oversold: 30
+    rsi_overbought: 70
+    adx_min: 25  # Trend strength
+    min_model_confidence: 0.80
+    min_expected_profit_inr: 150  # After fees
+  
+  exit_rules:
+    take_profit_pct: 50.0  # % premium gain
+    stop_loss_pct: 60.0  # % premium loss
+    trailing_stop_pct: 30.0
+    exit_days_before_expiry: 1
+    intraday_exit_time: "15:15"
+    
+  position_sizing:
+    risk_per_trade_pct: 5.0  # Max loss per trade
+    kelly_fraction: 0.25  # Conservative Kelly
+    round_to_lot_size: true
+
+equity_strategy:
+  enabled: true
+  
+  swing_trading:
+    enabled: true
+    ema_fast: 9
+    ema_slow: 21
+    min_model_confidence: 0.75
+    holding_days: 5
+    target_profit_pct: 5.0
+    stop_loss_pct: 3.0
+    max_position_size_pct: 20.0
+  
+  intraday_trading:
+    enabled: false  # Disable for MVP
+    timeframe: "5m"
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    max_hold_hours: 4
+    target_profit_pct: 2.0
+    stop_loss_pct: 1.5
+    exit_time: "15:15"
+
+ml_models:
+  classifier:
+    model_type: "xgboost"
+    objective: "binary:logistic"
+    max_depth: 6
+    learning_rate: 0.1
+    n_estimators: 100
+    min_child_weight: 3
+    subsample: 0.8
+    colsample_bytree: 0.8
+    early_stopping_rounds: 10
+    target_accuracy: 0.70
+  
+  regressor:
+    model_type: "xgboost"
+    objective: "reg:squarederror"
+    max_depth: 6
+    learning_rate: 0.1
+    n_estimators: 100
+    subsample: 0.8
+    colsample_bytree: 0.8
+    early_stopping_rounds: 10
+    target_r2: 0.50
+  
+  training:
+    test_size: 0.2
+    cv_folds: 5
+    retrain_frequency_days: 7  # Weekly in paper trading
+    min_training_samples: 1000
+    feature_selection_threshold: 0.01
+
+features:
+  momentum:
+    - ema_9
+    - ema_21
+    - ema_50
+    - macd
+    - macd_signal
+    - macd_hist
+    - rsi_14
+    - rsi_7
+    - adx_14
+    - cci_20
+    - roc_10
+  
+  mean_reversion:
+    - bb_upper
+    - bb_lower
+    - bb_width
+    - zscore_20
+    - zscore_50
+  
+  volatility:
+    - atr_14
+    - atr_ratio
+    - iv_rank  # F&O only
+    - iv_percentile
+    - hv_20  # Historical volatility
+  
+  microstructure:
+    - bid_ask_spread
+    - order_imbalance
+    - volume_ratio
+    - vwap_distance
+  
+  options_greeks:  # F&O only
+    - delta
+    - gamma
+    - theta
+    - vega
+    - time_value_pct
+
+execution:
+  order_params:
+    exchange: "NSE"
+    product_fo: "NRML"  # Normal for F&O
+    product_equity: "CNC"  # Cash and Carry
+    order_type: "LIMIT"
+    validity: "DAY"
+    
+  slippage:
+    expected_pct: 0.01  # 1 basis point
+    max_acceptable_pct: 0.05  # 5 basis points
+    
+  fees:
+    brokerage_per_trade: 55  # INR (Zerodha flat fee estimate)
+    stt_fo_pct: 0.0625  # On sell side
+    stt_equity_pct: 0.1  # On sell side
+    transaction_charges_pct: 0.0019
+    gst_pct: 18.0  # On brokerage
+    sebi_charges_pct: 0.0001
+    stamp_duty_pct: 0.003
+  
+  retry:
+    max_retries: 3
+    retry_delay_ms: 1000
+    backoff_multiplier: 2.0
+
+data:
+  sources:
+    primary: "kite_connect"
+    historical_storage: "parquet"
+    cache: "redis"  # Optional
+  
+  historical:
+    lookback_days: 90  # 3 months for MVP
+    candle_interval: "day"
+    intraday_interval: "5minute"
+  
+  realtime:
+    websocket_reconnect: true
+    max_reconnect_attempts: 10
+    heartbeat_interval_s: 30
+
+backtesting:
+  validation:
+    min_trades: 30
+    min_win_rate: 0.50
+    min_sharpe: 0.80
+    max_drawdown: 0.15
+    min_profit_after_fees: 200  # INR
+  
+  walk_forward:
+    train_window_days: 60
+    test_window_days: 30
+    step_days: 15
+    min_passing_windows_pct: 80.0
+
+monitoring:
+  logging:
+    level: "INFO"
+    format: "json"
+    file: "logs/trading_bot.log"
+    rotation: "10 MB"
+    retention: "30 days"
+  
+  metrics:
+    track_slippage: true
+    track_latency: true
+    track_model_performance: true
+    export_prometheus: false  # Optional
+  
+  alerts:
+    channels:
+      - email
+      - sms
+    triggers:
+      - circuit_breaker_trip
+      - daily_loss_limit_hit
+      - margin_call
+      - order_rejection
+      - high_latency
+      - model_drift
+
+paper_trading:
+  duration_days: 30
+  min_trades: 20
+  success_criteria:
+    min_win_rate: 0.60
+    min_sharpe: 1.0
+    max_drawdown: 0.10
+    correlation_to_backtest: 0.80
+    avg_profit_per_trade: 100  # INR
+
+deployment:
+  mode: "local"  # local, docker, cloud
+  auto_start: false
+  health_check_interval_s: 60
+  graceful_shutdown_timeout_s: 30

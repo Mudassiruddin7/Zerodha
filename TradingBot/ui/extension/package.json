@@ -1,0 +1,116 @@
+{
+  "name": "zerodha-trading-bot-ui",
+  "displayName": "Zerodha Trading Bot UI",
+  "description": "User interface for Zerodha algorithmic trading bot - trade preview, manual confirmation, and dashboard",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:zerodha-trading-bot.showTradePreview",
+    "onCommand:zerodha-trading-bot.showDashboard",
+    "onCommand:zerodha-trading-bot.emergencyKillSwitch"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "zerodha-trading-bot.showTradePreview",
+        "title": "Show Trade Preview",
+        "category": "Trading Bot"
+      },
+      {
+        "command": "zerodha-trading-bot.showDashboard",
+        "title": "Show Trading Dashboard",
+        "category": "Trading Bot"
+      },
+      {
+        "command": "zerodha-trading-bot.emergencyKillSwitch",
+        "title": "Emergency Kill Switch - Stop All Trading",
+        "category": "Trading Bot"
+      },
+      {
+        "command": "zerodha-trading-bot.approveSignal",
+        "title": "Approve Trade Signal",
+        "category": "Trading Bot"
+      },
+      {
+        "command": "zerodha-trading-bot.rejectSignal",
+        "title": "Reject Trade Signal",
+        "category": "Trading Bot"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "trading-bot",
+          "title": "Trading Bot",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "trading-bot": [
+        {
+          "id": "tradingDashboard",
+          "name": "Dashboard"
+        },
+        {
+          "id": "pendingSignals",
+          "name": "Pending Signals"
+        },
+        {
+          "id": "openPositions",
+          "name": "Open Positions"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Trading Bot",
+      "properties": {
+        "tradingBot.autoApprove": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-approve trades (DANGEROUS - only for paper trading)"
+        },
+        "tradingBot.notificationLevel": {
+          "type": "string",
+          "enum": [
+            "all",
+            "signals-only",
+            "alerts-only",
+            "none"
+          ],
+          "default": "all",
+          "description": "Notification level for trading events"
+        },
+        "tradingBot.refreshInterval": {
+          "type": "number",
+          "default": 5000,
+          "description": "Dashboard refresh interval in milliseconds"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.14.0"
+  }
+}
